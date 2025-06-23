@@ -13,8 +13,8 @@ export interface FredApiResponse {
   }>;
 }
 
-// Using CORS proxy to access FRED API
-const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+// Using a different CORS proxy that works better with FRED API
+const CORS_PROXY = 'https://corsproxy.io/?';
 const FRED_API_BASE = 'https://api.stlouisfed.org/fred/series/observations';
 const FRED_API_KEY = 'fd4f231b539db735d3e4ba635a444b92';
 
@@ -53,8 +53,7 @@ export const fetchRateData = async (seriesId: string): Promise<RateData | null> 
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const proxyData = await response.json();
-    const data: FredApiResponse = JSON.parse(proxyData.contents);
+    const data: FredApiResponse = await response.json();
     console.log(`Response for ${seriesId}:`, data);
     
     if (data.observations && data.observations.length > 0) {
@@ -78,26 +77,8 @@ export const fetchRateData = async (seriesId: string): Promise<RateData | null> 
     return null;
   } catch (error) {
     console.error(`Error fetching data for ${seriesId}:`, error);
-    // Return mock data as fallback
-    const seriesInfo = Object.values(RATE_SERIES).find(s => s.id === seriesId);
-    return {
-      date: new Date().toISOString().split('T')[0],
-      value: getMockRate(seriesId),
-      title: seriesInfo?.title || seriesId,
-      series_id: seriesId
-    };
+    return null;
   }
-};
-
-// Mock data as fallback
-const getMockRate = (seriesId: string): number => {
-  const mockRates: Record<string, number> = {
-    'DPRIME': 8.50,
-    'DGS10': 4.25,
-    'DGS2': 4.15,
-    'SOFR': 5.35
-  };
-  return mockRates[seriesId] || 0;
 };
 
 export const fetchAllRates = async (): Promise<RateData[]> => {
