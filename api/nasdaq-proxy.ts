@@ -1,9 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 const NASDAQ_API_KEY = process.env.NASDAQ_API_KEY;
 const NASDAQ_API_BASE = 'https://data.nasdaq.com/api/v3';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const handler = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -51,4 +49,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Proxy error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-} 
+};
+
+module.exports = handler; 
