@@ -1,4 +1,3 @@
-
 export interface RateData {
   date: string;
   value: number;
@@ -24,20 +23,30 @@ export const RATE_SERIES = {
     title: 'Prime Rate',
     description: 'Bank Prime Loan Rate'
   },
-  TREASURY_10Y: {
-    id: 'DGS10',
-    title: '10-Year Treasury',
-    description: '10-Year Treasury Constant Maturity Rate'
+  SOFR: {
+    id: 'SOFR',
+    title: 'SOFR',
+    description: 'Secured Overnight Financing Rate'
+  },
+  TREASURY_1Y: {
+    id: 'DGS1',
+    title: '1-Year Treasury',
+    description: '1-Year Treasury Constant Maturity Rate'
   },
   TREASURY_2Y: {
     id: 'DGS2',
     title: '2-Year Treasury',
     description: '2-Year Treasury Constant Maturity Rate'
   },
-  SOFR: {
-    id: 'SOFR',
-    title: 'SOFR',
-    description: 'Secured Overnight Financing Rate'
+  TREASURY_5Y: {
+    id: 'DGS5',
+    title: '5-Year Treasury',
+    description: '5-Year Treasury Constant Maturity Rate'
+  },
+  TREASURY_10Y: {
+    id: 'DGS10',
+    title: '10-Year Treasury',
+    description: '10-Year Treasury Constant Maturity Rate'
   }
 };
 
