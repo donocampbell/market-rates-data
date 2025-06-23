@@ -5,8 +5,8 @@ export interface RateData {
   series_id: string;
 }
 
-const NASDAQ_API_KEY = 'Bh23-FcHhJzMsx43gE7S';
-const NASDAQ_API_BASE = 'https://data.nasdaq.com/api/v3/datasets';
+// Use the Vercel proxy instead of calling Nasdaq directly
+const API_BASE = '/api/nasdaq-proxy';
 
 export const RATE_SERIES = {
   PRIME: {
@@ -58,7 +58,14 @@ export const fetchRateData = async (seriesId: string): Promise<RateData | null> 
   try {
     const seriesInfo = Object.values(RATE_SERIES).find(s => s.id === seriesId || s.id.split('/')[1] === seriesId);
     if (!seriesInfo) return null;
-    let url = `${NASDAQ_API_BASE}/${seriesInfo.id}.json?api_key=${NASDAQ_API_KEY}&rows=1&order=desc`;
+    
+    const params = new URLSearchParams({
+      dataset: seriesInfo.id,
+      rows: '1',
+      order: 'desc'
+    });
+    
+    const url = `${API_BASE}?${params}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
@@ -98,7 +105,16 @@ export const fetchRateHistory = async (
   try {
     const seriesInfo = Object.values(RATE_SERIES).find(s => s.id === seriesId || s.id.split('/')[1] === seriesId);
     if (!seriesInfo) return [];
-    let url = `${NASDAQ_API_BASE}/${seriesInfo.id}.json?api_key=${NASDAQ_API_KEY}&start_date=${startDate}&end_date=${endDate}&order=asc&collapse=daily`;
+    
+    const params = new URLSearchParams({
+      dataset: seriesInfo.id,
+      start_date: startDate,
+      end_date: endDate,
+      order: 'asc',
+      collapse: 'daily'
+    });
+    
+    const url = `${API_BASE}?${params}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
