@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { fetchAllRates, RateData } from '@/services/fredApi';
 
 const RatesWidget = () => {
@@ -95,9 +95,6 @@ const RatesWidget = () => {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
                   As of Date
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
-                  Status
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -134,15 +131,6 @@ const RatesWidget = () => {
                     <div className="text-sm font-medium text-slate-700">
                       {formatDate(rate.date)}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <Badge 
-                      variant="secondary" 
-                      className="bg-green-100 text-green-800 hover:bg-green-100"
-                    >
-                      <TrendingUp className="h-3 w-3 mr-1" />
-                      Active
-                    </Badge>
                   </td>
                 </tr>
               ))}
