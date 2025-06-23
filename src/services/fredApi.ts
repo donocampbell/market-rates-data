@@ -5,99 +5,119 @@ export interface RateData {
   series_id: string;
 }
 
-export interface FredApiResponse {
-  observations: Array<{
-    date: string;
-    value: string;
-  }>;
-}
-
-// Using a different CORS proxy that works better with FRED API
-const CORS_PROXY = 'https://corsproxy.io/?';
-const FRED_API_BASE = 'https://api.stlouisfed.org/fred/series/observations';
-const FRED_API_KEY = 'fd4f231b539db735d3e4ba635a444b92';
+const NASDAQ_API_KEY = 'Bh23-FcHhJzMsx43gE7S';
+const NASDAQ_API_BASE = 'https://data.nasdaq.com/api/v3/datasets';
 
 export const RATE_SERIES = {
   PRIME: {
-    id: 'DPRIME',
+    id: 'FRED/DPRIME',
     title: 'Prime Rate',
-    description: 'Bank Prime Loan Rate'
+    description: 'Bank Prime Loan Rate',
+    column: 1 // value column index (1-based)
   },
   SOFR: {
-    id: 'SOFR',
+    id: 'NYFED/SOFR',
     title: 'SOFR',
-    description: 'Secured Overnight Financing Rate'
+    description: 'Secured Overnight Financing Rate',
+    column: 1
   },
   TREASURY_1Y: {
-    id: 'DGS1',
+    id: 'USTREASURY/YIELD',
     title: '1-Year Treasury',
-    description: '1-Year Treasury Constant Maturity Rate'
+    description: '1-Year Treasury Constant Maturity Rate',
+    column: 4 // 1 YR column in USTREASURY/YIELD
   },
   TREASURY_2Y: {
-    id: 'DGS2',
+    id: 'USTREASURY/YIELD',
     title: '2-Year Treasury',
-    description: '2-Year Treasury Constant Maturity Rate'
+    description: '2-Year Treasury Constant Maturity Rate',
+    column: 5 // 2 YR column
   },
   TREASURY_5Y: {
-    id: 'DGS5',
+    id: 'USTREASURY/YIELD',
     title: '5-Year Treasury',
-    description: '5-Year Treasury Constant Maturity Rate'
+    description: '5-Year Treasury Constant Maturity Rate',
+    column: 7 // 5 YR column
   },
   TREASURY_10Y: {
-    id: 'DGS10',
+    id: 'USTREASURY/YIELD',
     title: '10-Year Treasury',
-    description: '10-Year Treasury Constant Maturity Rate'
+    description: '10-Year Treasury Constant Maturity Rate',
+    column: 9 // 10 YR column
   }
+};
+
+// Helper to get the correct value from USTREASURY/YIELD columns
+const getTreasuryValue = (row: any[], column: number) => {
+  // row[0] is date, columns are 1-based
+  const val = row[column];
+  return val === null ? null : parseFloat(val);
 };
 
 export const fetchRateData = async (seriesId: string): Promise<RateData | null> => {
   try {
-    const fredUrl = `${FRED_API_BASE}?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&limit=1&sort_order=desc`;
-    const proxyUrl = `${CORS_PROXY}${encodeURIComponent(fredUrl)}`;
-    
-    console.log(`Fetching data for ${seriesId} via proxy:`, proxyUrl);
-    
-    const response = await fetch(proxyUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const seriesInfo = Object.values(RATE_SERIES).find(s => s.id === seriesId || s.id.split('/')[1] === seriesId);
+    if (!seriesInfo) return null;
+    let url = `${NASDAQ_API_BASE}/${seriesInfo.id}.json?api_key=${NASDAQ_API_KEY}&rows=1&order=desc`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log('Nasdaq fetchRateData response:', data);
+    const dataset = data.dataset;
+    const latest = dataset.data[0];
+    let value: number | null = null;
+    if (seriesInfo.id === 'USTREASURY/YIELD') {
+      value = getTreasuryValue(latest, seriesInfo.column);
+    } else {
+      value = latest[1] !== null ? parseFloat(latest[1]) : null;
     }
-    
-    const data: FredApiResponse = await response.json();
-    console.log(`Response for ${seriesId}:`, data);
-    
-    if (data.observations && data.observations.length > 0) {
-      const latest = data.observations[0];
-      const seriesInfo = Object.values(RATE_SERIES).find(s => s.id === seriesId);
-      
-      // Skip if value is "." (missing data)
-      if (latest.value === '.') {
-        console.log(`No data available for ${seriesId} on ${latest.date}`);
-        return null;
-      }
-      
-      return {
-        date: latest.date,
-        value: parseFloat(latest.value),
-        title: seriesInfo?.title || seriesId,
-        series_id: seriesId
-      };
-    }
-    
-    return null;
+    if (value === null) return null;
+    return {
+      date: latest[0],
+      value,
+      title: seriesInfo.title,
+      series_id: seriesInfo.id
+    };
   } catch (error) {
-    console.error(`Error fetching data for ${seriesId}:`, error);
+    console.error(`Error fetching Nasdaq data for ${seriesId}:`, error);
     return null;
   }
 };
 
 export const fetchAllRates = async (): Promise<RateData[]> => {
-  console.log('Fetching all rates...');
-  const promises = Object.values(RATE_SERIES).map(series => 
-    fetchRateData(series.id)
-  );
-  
+  const promises = Object.values(RATE_SERIES).map(series => fetchRateData(series.id));
   const results = await Promise.all(promises);
-  const validResults = results.filter((rate): rate is RateData => rate !== null);
-  console.log('All rates fetched:', validResults);
-  return validResults;
+  return results.filter((rate): rate is RateData => rate !== null);
+};
+
+export const fetchRateHistory = async (
+  seriesId: string,
+  startDate: string,
+  endDate: string
+): Promise<{ date: string; value: number }[]> => {
+  try {
+    const seriesInfo = Object.values(RATE_SERIES).find(s => s.id === seriesId || s.id.split('/')[1] === seriesId);
+    if (!seriesInfo) return [];
+    let url = `${NASDAQ_API_BASE}/${seriesInfo.id}.json?api_key=${NASDAQ_API_KEY}&start_date=${startDate}&end_date=${endDate}&order=asc&collapse=daily`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    console.log('Nasdaq fetchRateHistory response:', data);
+    const dataset = data.dataset;
+    // For USTREASURY/YIELD, columns: [DATE, 1 MO, 2 MO, 3 MO, 6 MO, 1 YR, 2 YR, 3 YR, 5 YR, 7 YR, 10 YR, 20 YR, 30 YR]
+    return dataset.data
+      .map((row: any[]) => {
+        let value: number | null = null;
+        if (seriesInfo.id === 'USTREASURY/YIELD') {
+          value = getTreasuryValue(row, seriesInfo.column);
+        } else {
+          value = row[1] !== null ? parseFloat(row[1]) : null;
+        }
+        return value !== null ? { date: row[0], value } : null;
+      })
+      .filter((d: any) => d !== null);
+  } catch (error) {
+    console.error(`Error fetching Nasdaq history for ${seriesId}:`, error);
+    return [];
+  }
 };

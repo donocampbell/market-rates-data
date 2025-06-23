@@ -51,6 +51,10 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Bridge brand colors */
+    --bridge-teal: 180 100% 35%;
+    --bridge-darkgray: 220 13% 18%;
   }
 
   .dark {

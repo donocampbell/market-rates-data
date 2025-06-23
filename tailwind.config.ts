@@ -61,7 +61,9 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				'bridge-teal': 'hsl(var(--bridge-teal))',
+				'bridge-darkgray': 'hsl(var(--bridge-darkgray))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

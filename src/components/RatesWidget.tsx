@@ -1,12 +1,31 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
-import { Clock } from 'lucide-react';
-import { fetchAllRates, RateData } from '@/services/fredApi';
+import { Clock, AlertCircle } from 'lucide-react';
+import { fetchAllRates, RateData, fetchRateHistory } from '@/services/fredApi';
+import Sparkline from './Sparkline';
+
+function downsampleToMonthly(values: number[], dates: string[]): { values: number[]; dates: string[] } {
+  if (!values.length || !dates.length || values.length !== dates.length) return { values: [], dates: [] };
+  const monthly: { [key: string]: { value: number; date: string } } = {};
+  for (let i = 0; i < dates.length; i++) {
+    const d = new Date(dates[i]);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    // Always take the latest value for the month
+    monthly[key] = { value: values[i], date: dates[i] };
+  }
+  // Sort by date ascending
+  const sorted = Object.values(monthly).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return {
+    values: sorted.map((m) => m.value),
+    dates: sorted.map((m) => m.date),
+  };
+}
 
 const RatesWidget = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [historyData, setHistoryData] = useState<Record<string, { values: number[]; dates: string[] }>>({});
+  const [loadingHistory, setLoadingHistory] = useState<Record<string, boolean>>({});
 
   const { data: rates, isLoading, error, refetch } = useQuery({
     queryKey: ['rates'],
@@ -18,7 +37,34 @@ const RatesWidget = () => {
   useEffect(() => {
     if (rates) {
       setLastUpdated(new Date());
+      // Fetch 1 year of history for each rate
+      const today = new Date();
+      const lastYear = new Date();
+      lastYear.setFullYear(today.getFullYear() - 1);
+      const endDate = today.toISOString().slice(0, 10);
+      const startDate = lastYear.toISOString().slice(0, 10);
+      rates.forEach((rate) => {
+        if (!historyData[rate.series_id] && !loadingHistory[rate.series_id]) {
+          setLoadingHistory((prev) => ({ ...prev, [rate.series_id]: true }));
+          fetchRateHistory(rate.series_id, startDate, endDate).then((history) => {
+            // Sort by date ascending
+            const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            // Ensure last value matches current rate
+            let values = sorted.map((h) => h.value);
+            let dates = sorted.map((h) => h.date);
+            if (values.length > 0 && values[values.length - 1] !== rate.value) {
+              values[values.length - 1] = rate.value;
+            }
+            setHistoryData((prev) => ({
+              ...prev,
+              [rate.series_id]: { values, dates },
+            }));
+            setLoadingHistory((prev) => ({ ...prev, [rate.series_id]: false }));
+          });
+        }
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rates]);
 
   const formatRate = (value: number) => {
@@ -95,6 +141,9 @@ const RatesWidget = () => {
                 <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
                   As of Date
                 </th>
+                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
+                  1YR Rate Lines
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -131,6 +180,28 @@ const RatesWidget = () => {
                     <div className="text-sm font-medium text-slate-700">
                       {formatDate(rate.date)}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {loadingHistory[rate.series_id] ? (
+                      <span className="w-28 h-6 bg-slate-100 rounded animate-pulse inline-block" />
+                    ) : historyData[rate.series_id] ? (
+                      (() => {
+                        const { values: monthlyValues, dates: monthlyDates } = downsampleToMonthly(
+                          historyData[rate.series_id].values,
+                          historyData[rate.series_id].dates
+                        );
+                        return (
+                          <Sparkline
+                            data={historyData[rate.series_id].values}
+                            dates={historyData[rate.series_id].dates}
+                            monthlyData={monthlyValues}
+                            monthlyDates={monthlyDates}
+                            width={100}
+                            height={32}
+                          />
+                        );
+                      })()
+                    ) : null}
                   </td>
                 </tr>
               ))}
