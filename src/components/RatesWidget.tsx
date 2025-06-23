@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
@@ -13,10 +12,14 @@ const RatesWidget = () => {
     queryKey: ['rates'],
     queryFn: fetchAllRates,
     refetchInterval: 60 * 60 * 1000, // Refetch every hour
-    onSuccess: () => {
+  });
+
+  // Update lastUpdated when we get new data
+  useEffect(() => {
+    if (rates) {
       setLastUpdated(new Date());
     }
-  });
+  }, [rates]);
 
   const formatRate = (value: number) => {
     return `${value.toFixed(2)}%`;

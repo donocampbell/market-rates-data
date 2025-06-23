@@ -19,25 +19,17 @@ const Index = () => {
         <div className="mt-8 text-center">
           <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-200 max-w-2xl mx-auto">
             <h3 className="text-lg font-semibold text-slate-800 mb-3">
-              Setup Instructions
+              About This Widget
             </h3>
             <div className="text-left space-y-2 text-sm text-slate-600">
               <p>
-                <strong>1.</strong> Get a free API key from{' '}
-                <a 
-                  href="https://fred.stlouisfed.org/docs/api/api_key.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  FRED API
-                </a>
+                • Data sourced from Federal Reserve Economic Data (FRED)
               </p>
               <p>
-                <strong>2.</strong> Replace 'your_fred_api_key_here' in fredApi.ts with your actual API key
+                • Rates update automatically every hour
               </p>
               <p>
-                <strong>3.</strong> Rates update automatically every hour
+                • Displays latest available data for each benchmark rate
               </p>
             </div>
           </div>

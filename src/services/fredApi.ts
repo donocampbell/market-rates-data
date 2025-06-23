@@ -14,7 +14,7 @@ export interface FredApiResponse {
 }
 
 const FRED_API_BASE = 'https://api.stlouisfed.org/fred/series/observations';
-const FRED_API_KEY = 'your_fred_api_key_here'; // Users will need to add their own API key
+const FRED_API_KEY = 'fd4f231b539db735d3e4ba635a444b92';
 
 export const RATE_SERIES = {
   PRIME: {
@@ -43,12 +43,15 @@ export const fetchRateData = async (seriesId: string): Promise<RateData | null> 
   try {
     const url = `${FRED_API_BASE}?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&limit=1&sort_order=desc`;
     
+    console.log(`Fetching data for ${seriesId} from:`, url);
+    
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data: FredApiResponse = await response.json();
+    console.log(`Response for ${seriesId}:`, data);
     
     if (data.observations && data.observations.length > 0) {
       const latest = data.observations[0];
@@ -70,10 +73,13 @@ export const fetchRateData = async (seriesId: string): Promise<RateData | null> 
 };
 
 export const fetchAllRates = async (): Promise<RateData[]> => {
+  console.log('Fetching all rates...');
   const promises = Object.values(RATE_SERIES).map(series => 
     fetchRateData(series.id)
   );
   
   const results = await Promise.all(promises);
-  return results.filter((rate): rate is RateData => rate !== null);
+  const validResults = results.filter((rate): rate is RateData => rate !== null);
+  console.log('All rates fetched:', validResults);
+  return validResults;
 };
